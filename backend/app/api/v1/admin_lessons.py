@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin
 from app.core.database import get_db
+from app.utils.response import success_response
 from app.models.ai_pipeline_model import LessonSummary
 from app.models.users_model import User
 from app.services.admin_lesson_service import AdminLessonService
@@ -37,14 +38,6 @@ class LessonUpdateInput(BaseModel):
     isFree: bool | None = None
     status: str | None = None
 
-<<<<<<< HEAD
-=======
-
-def success_response(data, message: str = "OK"):
-    return {"success": True, "message": message, "data": data}
-
-
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 @router.get("", status_code=status.HTTP_200_OK)
 def list_lessons(
     course_id: int | None = Query(default=None, alias="courseId"),
@@ -67,18 +60,18 @@ def get_lesson(lesson_id: int, db: Session = Depends(get_db), _: User = Depends(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_lesson(payload: LessonCreateInput, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     lesson = AdminLessonService.create_lesson(db, payload)
-    return success_response(AdminLessonService.serialize_lesson(db, lesson), "Tạo bài học thành công.")
+    return success_response(AdminLessonService.serialize_lesson(db, lesson), "Tao bai hoc thanh cong.")
 
 
 @router.patch("/{lesson_id}", status_code=status.HTTP_200_OK)
 def update_lesson(lesson_id: int, payload: LessonUpdateInput, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     lesson = AdminLessonService.update_lesson(db, lesson_id, payload)
-    return success_response(AdminLessonService.serialize_lesson(db, lesson), "Cập nhật bài học thành công.")
+    return success_response(AdminLessonService.serialize_lesson(db, lesson), "Cap nhat bai hoc thanh cong.")
 
 
 @router.delete("/{lesson_id}", status_code=status.HTTP_200_OK)
 def delete_lesson(lesson_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return success_response(AdminLessonService.delete_lesson(db, lesson_id), "Đã lưu trữ bài học.")
+    return success_response(AdminLessonService.delete_lesson(db, lesson_id), "Da luu tru bai hoc.")
 
 
 @router.post("/{lesson_id}/generate-transcript", status_code=status.HTTP_200_OK)
@@ -92,13 +85,13 @@ def generate_transcript(
 ):
     lesson = AdminLessonService.get_lesson(db, lesson_id)
     if not lesson.videos:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bài học chưa có video.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bai hoc chua co video.")
     transcript = TranscriptService.mark_processing(db, lesson_id, language=language, force=force)
     db.commit()
     if transcript.status == "completed" and not force:
-        return success_response(TranscriptService.serialize_transcript(transcript, lesson_id), "Transcript đã tồn tại.")
+        return success_response(TranscriptService.serialize_transcript(transcript, lesson_id), "Transcript da ton tai.")
     background_tasks.add_task(TranscriptService.generate_transcript_task, lesson_id, language)
-    return success_response({"lessonId": lesson_id, "status": "processing"}, "Đã bắt đầu tạo transcript.")
+    return success_response({"lessonId": lesson_id, "status": "processing"}, "Da bat dau tao transcript.")
 
 
 @router.post("/{lesson_id}/generate-summary", status_code=status.HTTP_200_OK)
@@ -106,7 +99,7 @@ def generate_summary(lesson_id: int, db: Session = Depends(get_db), _: User = De
     AdminLessonService.get_lesson(db, lesson_id)
     transcript = TranscriptService.get_transcript(db, lesson_id)
     if not transcript or transcript.status != "completed" or not transcript.transcript_text:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cần transcript hoàn thành trước khi tạo tóm tắt.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Can transcript completed truoc khi tao summary.")
 
     summary_text, key_points = generate_ai_summary(transcript.transcript_text)
     summary = LessonSummary(
@@ -117,20 +110,20 @@ def generate_summary(lesson_id: int, db: Session = Depends(get_db), _: User = De
     )
     db.add(summary)
     db.commit()
-    return success_response({"lessonId": lesson_id, "summaryStatus": "completed"}, "Đã tạo tóm tắt bài học.")
+    return success_response({"lessonId": lesson_id, "summaryStatus": "completed"}, "Da tao tom tat bai hoc.")
 
 
 def generate_ai_summary(transcript_text: str):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Chưa cấu hình AI provider để tạo tóm tắt.")
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Chua cau hinh AI provider de tao summary.")
 
     model = os.getenv("OPENAI_SUMMARY_MODEL", "gpt-4o-mini")
     body = json.dumps(
         {
             "model": model,
             "messages": [
-                {"role": "system", "content": "Tóm tắt bài học bằng tiếng Việt. Trả về JSON có summaryText và keyPoints."},
+                {"role": "system", "content": "Tom tat bai hoc bang tieng Viet. Tra ve JSON co summaryText va keyPoints."},
                 {"role": "user", "content": transcript_text[:12000]},
             ],
             "response_format": {"type": "json_object"},
