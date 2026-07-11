@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: python_ai_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: python_ai_learning_db
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - "3307:3306"   #máy thật : docker
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - ai_network
+
+networks:
+  ai_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

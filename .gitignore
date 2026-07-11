@@ -1,0 +1,41 @@
+# Node / React
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+backend/.env
+
+# Upload files
+backend/uploads/videos/*
+backend/uploads/audios/*
+backend/uploads/transcripts/*
+backend/uploads/documents/*
+
+# Keep empty upload folders
+!backend/uploads/videos/.gitkeep
+!backend/uploads/audios/.gitkeep
+!backend/uploads/transcripts/.gitkeep
+!backend/uploads/documents/.gitkeep
+
+# Vector database
+backend/vector_db/chroma_data/*
+
+# Keep empty vector folder
+!backend/vector_db/chroma_data/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
