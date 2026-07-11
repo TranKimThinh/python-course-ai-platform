@@ -7,13 +7,24 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+<<<<<<< HEAD
 from app.utils.response import success_response
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 from app.models.courses_model import ContentStatus, CourseLevel
 from app.models.users_model import User
 from app.services.course_service import CoursesService
 
 router = APIRouter()
 
+<<<<<<< HEAD
+=======
+
+def success_response(data, message: str = "OK"):
+    return {"success": True, "message": message, "data": data}
+
+
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
     """Chặn nếu user đã đăng nhập nhưng không có role admin."""
     if current_user.role != "admin":

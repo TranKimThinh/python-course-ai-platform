@@ -347,6 +347,7 @@ class CoursesService:
 
     @staticmethod
     def _generate_unique_slug(db: Session, title: str) -> str:
+<<<<<<< HEAD
         """
         Tạo một slug duy nhất dựa trên tiêu đề bài học/khóa học.
         Nếu slug đã tồn tại trong cơ sở dữ liệu, hàm sẽ tự động thêm hậu tố số 
@@ -359,6 +360,8 @@ class CoursesService:
         Returns:
             str: Slug hợp lệ và duy nhất.
         """
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         base_slug = CoursesService._slugify(title)
         slug = base_slug
         counter = 1
@@ -369,6 +372,7 @@ class CoursesService:
 
     @staticmethod
     def _slugify(value: str) -> str:
+<<<<<<< HEAD
         """
         Chuyển đổi một chuỗi văn bản thành slug thân thiện với URL.
         Các bước thực hiện: loại bỏ dấu tiếng Việt, ký tự đặc biệt, 
@@ -380,6 +384,8 @@ class CoursesService:
         Returns:
             str: Chuỗi slug đã định dạng (VD: "Lập trình Python" -> "lap-trinh-python").
         """
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
         value = re.sub(r"[^\w\s-]", "", value).strip().lower()
         return re.sub(r"[-\s]+", "-", value) or "khoa-hoc"

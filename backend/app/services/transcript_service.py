@@ -102,12 +102,19 @@ class GeminiTranscriptProvider(SpeechToTextProvider):
             raise RuntimeError("Thieu GEMINI_API_KEY trong bien moi truong.")
 
         client = genai.Client(api_key=api_key)
+<<<<<<< HEAD
         model_name = os.getenv("GEMINI_TRANSCRIBE_MODEL", "gemini-3.5-flash")
+=======
+        model_name = os.getenv("GEMINI_TRANSCRIBE_MODEL", "gemini-1.5-flash")
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         uploaded_file = None
         
         try:
             uploaded_file = client.files.upload(file=audio_path)
+<<<<<<< HEAD
             print('check file: ', audio_path)
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
             
             prompt = "Transcribe this audio exactly as spoken. Do not translate. Do not add any comments."
             if language == "vi":

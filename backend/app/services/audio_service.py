@@ -12,6 +12,7 @@ SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v"}
 
 
 class AudioService:
+<<<<<<< HEAD
     """
     Lớp dịch vụ cung cấp các công cụ xử lý file đa phương tiện,
     bao gồm tải video từ internet, trích xuất âm thanh và quản lý file tạm.
@@ -34,6 +35,10 @@ class AudioService:
             RuntimeError: Nếu không tìm thấy ffmpeg hoặc quá trình trích xuất thất bại.
         """
         
+=======
+    @staticmethod
+    def extract_audio_from_video(video_path: str, output_path: str) -> str:
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         AudioService.ensure_binary_available("ffmpeg", "ffmpeg chua duoc cai dat hoac chua co trong PATH.")
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -56,6 +61,7 @@ class AudioService:
 
     @staticmethod
     def prepare_video_source(video_url: str, lesson_id: int, storage_provider: str | None = None) -> tuple[str, list[Path]]:
+<<<<<<< HEAD
         
         """
         Chuẩn bị nguồn video bằng cách tải xuống từ URL (YouTube hoặc link trực tiếp)
@@ -73,6 +79,8 @@ class AudioService:
             ValueError/PermissionError/FileNotFoundError: Nếu URL không hợp lệ hoặc thiếu quyền.
         """
         
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         if not video_url:
             raise ValueError("Bai hoc chua co video de tao transcript.")
 
@@ -85,7 +93,11 @@ class AudioService:
                 raise PermissionError("YouTube transcript bi tat. Chi bat khi he thong co quyen xu ly video nay.")
             AudioService.ensure_binary_available("yt-dlp", "yt-dlp chua duoc cai dat hoac chua co trong PATH.")
             output_path = TEMP_STORAGE_DIR / f"lesson_{lesson_id}_youtube.%(ext)s"
+<<<<<<< HEAD
             command = ["yt-dlp", "--no-playlist", "-f", "bestaudio/best", "-o", str(output_path), video_url]
+=======
+            command = ["yt-dlp", "-f", "bestaudio/best", "-o", str(output_path), video_url]
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
             subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             downloaded_files = sorted(TEMP_STORAGE_DIR.glob(f"lesson_{lesson_id}_youtube.*"))
             if not downloaded_files:
@@ -109,6 +121,7 @@ class AudioService:
 
     @staticmethod
     def download_file(url: str, output_path: Path) -> Path:
+<<<<<<< HEAD
         
         """
         Tải file từ URL từ xa về máy chủ cục bộ bằng thư viện urllib.
@@ -121,6 +134,8 @@ class AudioService:
             Path: Đường dẫn tới file đã tải về.
         """
         
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         output_path.parent.mkdir(parents=True, exist_ok=True)
         request = urllib.request.Request(url, headers={"User-Agent": "python-course-ai-platform/1.0"})
         with urllib.request.urlopen(request, timeout=120) as response:
@@ -130,6 +145,7 @@ class AudioService:
 
     @staticmethod
     def resolve_local_path(video_url: str) -> Path:
+<<<<<<< HEAD
         
         """
         Phân giải đường dẫn cục bộ cho video dựa trên cấu trúc thư mục của dự án.
@@ -141,6 +157,8 @@ class AudioService:
             Path: Đối tượng Path đã được phân giải chính xác.
         """
         
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         parsed = urllib.parse.urlparse(video_url)
         path = urllib.parse.unquote(parsed.path if parsed.scheme == "file" else video_url)
         candidate = Path(path)
@@ -156,6 +174,7 @@ class AudioService:
 
     @staticmethod
     def cleanup(paths: list[Path | str]) -> None:
+<<<<<<< HEAD
         
         """
         Dọn dẹp các file tạm sau khi đã xử lý xong để giải phóng không gian lưu trữ.
@@ -164,6 +183,8 @@ class AudioService:
             paths (list[Path | str]): Danh sách đường dẫn các file cần xóa.
         """
         
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         for path in paths:
             try:
                 Path(path).unlink(missing_ok=True)
@@ -172,6 +193,7 @@ class AudioService:
 
     @staticmethod
     def ensure_binary_available(binary_name: str, message: str) -> None:
+<<<<<<< HEAD
         
         """
         Kiểm tra xem một chương trình (binary) đã được cài đặt trong hệ thống hay chưa.
@@ -181,5 +203,7 @@ class AudioService:
             message (str): Thông báo lỗi nếu chương trình không tồn tại.
         """
         
+=======
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         if not shutil.which(binary_name):
             raise RuntimeError(message)

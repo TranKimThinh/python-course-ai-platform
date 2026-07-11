@@ -37,6 +37,14 @@ class LessonUpdateInput(BaseModel):
     isFree: bool | None = None
     status: str | None = None
 
+<<<<<<< HEAD
+=======
+
+def success_response(data, message: str = "OK"):
+    return {"success": True, "message": message, "data": data}
+
+
+>>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 @router.get("", status_code=status.HTTP_200_OK)
 def list_lessons(
     course_id: int | None = Query(default=None, alias="courseId"),
