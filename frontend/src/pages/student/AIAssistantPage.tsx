@@ -75,28 +75,14 @@ function AIAssistantPage() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
-  const responseTimerRef = useRef<number | null>(null);
   const messages = messagesBySession[activeSessionId] ?? [];
 
+  // Tự động cuộn xuống cuối khi có tin nhắn mới hoặc đang gõ
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  useEffect(
-    () => () => {
-      if (responseTimerRef.current) {
-        window.clearTimeout(responseTimerRef.current);
-      }
-    },
-    [],
-  );
-
   const handleNewSession = () => {
-    if (responseTimerRef.current) {
-      window.clearTimeout(responseTimerRef.current);
-      responseTimerRef.current = null;
-    }
-
     const id = `session-${Date.now()}`;
     const nextSession: ChatSession = {
       id,
@@ -112,22 +98,20 @@ function AIAssistantPage() {
   };
 
   const handleSelectSession = (sessionId: string) => {
-    if (responseTimerRef.current) {
-      window.clearTimeout(responseTimerRef.current);
-      responseTimerRef.current = null;
-    }
-
     setActiveSessionId(sessionId);
     setInputValue("");
     setIsTyping(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  // Hàm xử lý gửi câu hỏi lên BE
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const question = inputValue.trim();
     if (!question || isTyping) return;
 
     const sessionId = activeSessionId;
+    
+    // 1. Thêm tin nhắn của User vào UI ngay lập tức
     setMessagesBySession((current) => ({
       ...current,
       [sessionId]: [
@@ -138,6 +122,7 @@ function AIAssistantPage() {
     setInputValue("");
     setIsTyping(true);
 
+    // 2. Cập nhật tiêu đề session nếu đây là câu hỏi đầu tiên
     setSessions((current) =>
       current.map((session) =>
         session.id === activeSessionId && session.title === "Cuộc trò chuyện mới"
@@ -146,7 +131,28 @@ function AIAssistantPage() {
       ),
     );
 
-    responseTimerRef.current = window.setTimeout(() => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch("https://cobweb-lunchbox-upcoming.ngrok-free.dev/api/v1/chatbot/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          message: question,
+          lesson_id: null 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Lỗi khi kết nối với máy chủ!");
+      }
+
+      const data = await response.json();
+
+      // 4. Lấy kết quả từ API và hiển thị lên UI
       setMessagesBySession((current) => ({
         ...current,
         [sessionId]: [
@@ -154,14 +160,27 @@ function AIAssistantPage() {
           {
             id: `assistant-${Date.now()}`,
             role: "assistant",
-            content:
-              "Đây là phản hồi AI mô phỏng. Bạn có thể tiếp tục đặt câu hỏi về Python và nội dung khóa học.",
+            content: data.data.reply, // Dữ liệu trả về từ format của Backend
           },
         ],
       }));
+    } catch (error) {
+      console.error("Lỗi:", error);
+      // Hiển thị thông báo lỗi nếu API sập
+      setMessagesBySession((current) => ({
+        ...current,
+        [sessionId]: [
+          ...(current[sessionId] ?? []),
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: "Xin lỗi, hiện tại không thể kết nối tới AI. Vui lòng thử lại sau.",
+          },
+        ],
+      }));
+    } finally {
       setIsTyping(false);
-      responseTimerRef.current = null;
-    }, 1000);
+    }
   };
 
   return (
@@ -217,7 +236,7 @@ function AIAssistantPage() {
                   Bắt đầu cuộc trò chuyện mới
                 </h3>
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                  Nhập câu hỏi về Python để nhận phản hồi AI mô phỏng.
+                  Nhập câu hỏi về Python để nhận phản hồi AI thực tế.
                 </p>
               </div>
             )}
@@ -235,8 +254,9 @@ function AIAssistantPage() {
                       <Bot size={18} aria-hidden={true} />
                     </span>
                   )}
+                  {/* Sử dụng whitespace-pre-wrap để giữ lại định dạng dòng mới (xuống dòng) từ kết quả AI */}
                   <p
-                    className={`max-w-[82%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                    className={`max-w-[82%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
                       isUser
                         ? "rounded-tr-md bg-indigo-600 text-white"
                         : "rounded-tl-md bg-white text-slate-700"
