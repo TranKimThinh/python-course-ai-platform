@@ -4,10 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-<<<<<<< HEAD
 from app.utils.response import success_response
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 from app.models.users_model import User
 from app.schemas.progress import LessonCompleteInput, LessonProgressUpdateInput
 from app.services.lesson_service import LessonService
@@ -16,18 +13,6 @@ from app.services.transcript_service import TranscriptService
 
 router = APIRouter()
 
-<<<<<<< HEAD
-=======
-
-def success_response(data, message: str = "OK"):
-    return {
-        "success": True,
-        "message": message,
-        "data": data,
-    }
-
-
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
 def lesson_error_response(exc: HTTPException):
     if isinstance(exc.detail, dict):
         return JSONResponse(status_code=exc.status_code, content=exc.detail)

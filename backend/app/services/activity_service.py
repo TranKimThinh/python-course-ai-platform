@@ -84,7 +84,6 @@ class ActivityService:
 
     @staticmethod
     def _get_stats(db: Session, user_id: int):
-<<<<<<< HEAD
         """
         Tổng hợp thống kê hoạt động học tập của người dùng.
         
@@ -96,8 +95,6 @@ class ActivityService:
             dict: Thống kê bao gồm số lượng bài học đã hoàn thành, 
                   số lần làm bài kiểm tra và số câu hỏi đã đặt cho AI.
         """
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         lessons = (
             db.query(func.count(LessonProgress.id))
             .filter(LessonProgress.user_id == user_id, LessonProgress.is_completed.is_(True))
@@ -120,7 +117,6 @@ class ActivityService:
 
     @staticmethod
     def _serialize_activity(activity: LearningActivity):
-<<<<<<< HEAD
         """
         Chuyển đổi đối tượng hoạt động học tập thành dạng từ điển (dictionary) có định dạng,
         bao gồm nhãn hành động (actionLabel) và URL dẫn đến trang chi tiết.
@@ -131,8 +127,6 @@ class ActivityService:
         Returns:
             dict: Dữ liệu hoạt động đã được serialize đầy đủ.
         """
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         payload = ProgressService._serialize_activity(activity)
         payload["actionLabel"] = ActivityService._action_label(payload["type"])
         payload["actionUrl"] = activity.action_url or ActivityService._action_url(payload)
@@ -140,7 +134,6 @@ class ActivityService:
 
     @staticmethod
     def _action_label(activity_type: str):
-<<<<<<< HEAD
         """
         Lấy nhãn (label) hiển thị cho nút hành động dựa trên loại hoạt động.
         
@@ -150,8 +143,6 @@ class ActivityService:
         Returns:
             str: Nhãn văn bản hiển thị trên UI.
         """
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         return {
             "lesson_completed": "Xem bài học",
             "lesson_watched": "Xem bài học",
@@ -164,7 +155,6 @@ class ActivityService:
 
     @staticmethod
     def _action_url(payload: dict):
-<<<<<<< HEAD
         """
         Xác định đường dẫn URL (route) để điều hướng người dùng dựa trên loại hoạt động.
         
@@ -174,8 +164,6 @@ class ActivityService:
         Returns:
             str | None: Đường dẫn URL tương ứng hoặc None nếu không xác định được.
         """
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         if payload["type"] in {"lesson_completed", "lesson_watched", "course_continued"}:
             if payload.get("courseSlug") and payload.get("lessonId"):
                 return f"/learning/{payload['courseSlug']}/{payload['lessonId']}"
@@ -189,7 +177,6 @@ class ActivityService:
 
     @staticmethod
     def _time_range_bounds(time_range: str):
-<<<<<<< HEAD
         """
         Tính toán phạm vi thời gian (ngày bắt đầu và kết thúc) dựa trên tham số khoảng thời gian.
         
@@ -199,8 +186,6 @@ class ActivityService:
         Returns:
             tuple[datetime | None, datetime | None]: Cặp ngày bắt đầu và kết thúc.
         """
-=======
->>>>>>> 933f572f3b4d331d9f809383fdf702f376f02284
         now = datetime.utcnow()
         today = datetime.combine(now.date(), time.min)
         if time_range == "today":
