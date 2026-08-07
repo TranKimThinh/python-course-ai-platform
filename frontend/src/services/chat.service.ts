@@ -29,7 +29,6 @@ export async function getChatSessions(): Promise<ChatSession[]> {
   const response = await fetch(`${API_BASE_URL}/chatbot/sessions`, {
     headers: {
       "Authorization": `Bearer ${token}`,
-      "ngrok-skip-browser-warning": "true"
     }
   });
   
@@ -44,7 +43,6 @@ export async function getSessionMessages(sessionId: number): Promise<ChatMessage
   const response = await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}/messages`, {
     headers: {
       "Authorization": `Bearer ${token}`,
-      "ngrok-skip-browser-warning": "true"
     }
   });
 
@@ -78,7 +76,6 @@ export async function askAI({
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
-      "ngrok-skip-browser-warning": "true",
     },
     body: JSON.stringify({
       message: question,

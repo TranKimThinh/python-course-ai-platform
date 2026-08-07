@@ -1,6 +1,6 @@
 export const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
-  "https://cobweb-lunchbox-upcoming.ngrok-free.dev/api/v1"
+  "https://python-course-ai-platform-backend.onrender.com/api/v1"
 ).replace(/\/+$/, "");
 
 const TOKEN_STORAGE_KEY = "accessToken";
@@ -27,7 +27,6 @@ export async function apiFetch<T>(
   const headers = new Headers(options.headers);
 
   headers.set("Accept", headers.get("Accept") || "application/json");
-  headers.set("ngrok-skip-browser-warning", "true");
 
   if (!isFormData && options.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -78,7 +77,7 @@ export async function apiFetch<T>(
   }
 
   if (!contentType.includes("application/json")) {
-    throw new Error("API không trả về JSON. Có thể ngrok đang chặn request.");
+    throw new Error("API không trả về JSON.");
   }
 
   return response.json();
