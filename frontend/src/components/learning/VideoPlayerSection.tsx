@@ -15,8 +15,10 @@ declare global {
   interface Window {
     YT?: {
       Player?: new (
-        element: HTMLIFrameElement,
+        element: HTMLElement | string,
         options: {
+          videoId?: string;
+          playerVars?: Record<string, any>;
           events?: {
             onReady?: (event: { target: YouTubePlayer }) => void;
             onStateChange?: (event: { data: number }) => void;
@@ -66,7 +68,7 @@ function VideoPlayerSection({
   onEnded,
 }: VideoPlayerSectionProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const youtubeContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const lessonProgressRef = useRef<LessonProgressData | null>(lessonProgress);
@@ -75,31 +77,23 @@ function VideoPlayerSection({
   const lastSavedAtRef = useRef(0);
   const saveInFlightRef = useRef(false);
 
-  const finalEmbedUrl = useMemo(() => {
-    if (embedUrl) return embedUrl;
+  // Tách lấy YouTube Video ID chuẩn xác
+  const youtubeVideoId = useMemo(() => {
+    const targetUrl = embedUrl || videoUrl;
+    if (!targetUrl) return null;
 
-    if (provider?.toLowerCase() === "youtube" || isYouTubeUrl(videoUrl)) {
-      return getYouTubeEmbedUrl(videoUrl);
+    if (provider?.toLowerCase() === "youtube" || isYouTubeUrl(targetUrl)) {
+      const match = targetUrl.match(/(?:embed\/|v=|v\/|vi\/|youtu\.be\/|\/v\/|shorts\/)([^#&?]*)/);
+      return match && match[1] ? match[1] : null;
     }
-
     return null;
   }, [embedUrl, provider, videoUrl]);
-
-  const iframeSrc = useMemo(() => {
-    if (!finalEmbedUrl) return null;
-    const src = new URL(finalEmbedUrl, window.location.origin);
-    src.searchParams.set("enablejsapi", "1");
-    src.searchParams.set("origin", window.location.origin);
-    src.searchParams.set("rel", "0");
-    src.searchParams.set("modestbranding", "1");
-    return src.toString();
-  }, [finalEmbedUrl]);
 
   useEffect(() => {
     hasRestoredRef.current = false;
     lastSavedAtRef.current = 0;
     saveInFlightRef.current = false;
-  }, [lessonId, videoUrl, finalEmbedUrl]);
+  }, [lessonId, videoUrl, youtubeVideoId]);
 
   useEffect(() => {
     lessonProgressRef.current = lessonProgress;
@@ -108,6 +102,12 @@ function VideoPlayerSection({
   useEffect(() => {
     onEndedRef.current = onEnded;
   }, [onEnded]);
+
+  useEffect(() => {
+    if (videoRef.current && videoUrl) {
+      videoRef.current.load();
+    }
+  }, [videoUrl]);
 
   const persistProgress = useCallback(
     async (currentTime: number, duration: number, options: { keepalive?: boolean } = {}) => {
@@ -163,6 +163,11 @@ function VideoPlayerSection({
     await persistProgress(currentTime, duration, options);
   }, [durationSeconds, persistProgress]);
 
+  const saveYoutubeProgressRef = useRef(saveYoutubeProgress);
+  useEffect(() => {
+    saveYoutubeProgressRef.current = saveYoutubeProgress;
+  }, [saveYoutubeProgress]);
+
   const flushCurrentProgress = useCallback(async (options: { keepalive?: boolean } = {}) => {
     if (playerRef.current) {
       await saveYoutubeProgress(options);
@@ -176,22 +181,32 @@ function VideoPlayerSection({
     if (progressTimerRef.current) return;
 
     progressTimerRef.current = window.setInterval(() => {
-      saveYoutubeProgress().catch((error) => {
+      saveYoutubeProgressRef.current().catch((error) => {
         console.warn("Khong the luu tien do YouTube:", error);
       });
     }, 10000);
-  }, [saveYoutubeProgress]);
+  }, []);
 
+  // KHỞI TẠO YOUTUBE PLAYER BẰNG CONTAINER DIV
   useEffect(() => {
-    if (!iframeSrc || !iframeRef.current) return undefined;
+    if (!youtubeVideoId || !youtubeContainerRef.current) return undefined;
 
     let cancelled = false;
 
     const setupPlayer = () => {
-      if (cancelled || !window.YT?.Player || !iframeRef.current) return;
+      if (cancelled || !window.YT?.Player || !youtubeContainerRef.current) return;
 
-      playerRef.current?.destroy?.();
-      playerRef.current = new window.YT.Player(iframeRef.current, {
+      // Xóa sạch nội dung bên trong container trước khi gắn player mới
+      youtubeContainerRef.current.innerHTML = '<div id="yt-player-element" class="w-full h-full"></div>';
+
+      playerRef.current = new window.YT.Player("yt-player-element", {
+        videoId: youtubeVideoId,
+        playerVars: {
+          enablejsapi: 1,
+          rel: 0,
+          modestbranding: 1,
+          origin: window.location.origin,
+        },
         events: {
           onReady: (event) => {
             const currentProgress = lessonProgressRef.current;
@@ -199,7 +214,13 @@ function VideoPlayerSection({
             const duration = Math.floor(event.target.getDuration?.() || durationSeconds || currentProgress?.durationSeconds || 0);
 
             if (!currentProgress?.isCompleted && savedSeconds > 0 && duration > 0 && savedSeconds < duration - 5) {
-              event.target.seekTo?.(savedSeconds, true);
+              setTimeout(() => {
+                try {
+                  event.target.seekTo?.(savedSeconds, true);
+                } catch (e) {
+                  console.warn("Lỗi seek YouTube:", e);
+                }
+              }, 500);
             }
           },
           onStateChange: (event) => {
@@ -208,7 +229,7 @@ function VideoPlayerSection({
             }
 
             if (event.data === window.YT?.PlayerState?.PAUSED) {
-              saveYoutubeProgress().catch((error) => {
+              saveYoutubeProgressRef.current().catch((error) => {
                 console.warn("Khong the luu tien do YouTube khi pause:", error);
               });
               stopYoutubeProgressTimer();
@@ -219,7 +240,7 @@ function VideoPlayerSection({
                 playerRef.current?.getDuration?.() || durationSeconds || lessonProgressRef.current?.durationSeconds || 0,
               );
 
-              saveYoutubeProgress().catch((error) => {
+              saveYoutubeProgressRef.current().catch((error) => {
                 console.warn("Khong the luu tien do YouTube khi ket thuc:", error);
               });
               stopYoutubeProgressTimer();
@@ -250,17 +271,14 @@ function VideoPlayerSection({
     return () => {
       cancelled = true;
       stopYoutubeProgressTimer();
-      playerRef.current?.destroy?.();
+      if (playerRef.current?.destroy) {
+        try {
+          playerRef.current.destroy();
+        } catch {}
+      }
       playerRef.current = null;
     };
-  }, [
-    durationSeconds,
-    iframeSrc,
-    lessonId,
-    saveYoutubeProgress,
-    startYoutubeProgressTimer,
-    stopYoutubeProgressTimer,
-  ]);
+  }, [lessonId, youtubeVideoId, durationSeconds, startYoutubeProgressTimer, stopYoutubeProgressTimer]);
 
   useEffect(() => {
     const handlePageHide = () => {
@@ -325,23 +343,19 @@ function VideoPlayerSection({
   return (
     <section className="overflow-hidden rounded-[28px] bg-slate-950 shadow-2xl shadow-slate-200">
       <div className="relative aspect-video bg-slate-950">
-        {iframeSrc ? (
-          <iframe
-            key={`${lessonId}-${iframeSrc}`}
-            ref={iframeRef}
+        {youtubeVideoId ? (
+          <div
+            key={`yt-container-${lessonId}-${youtubeVideoId}`}
+            ref={youtubeContainerRef}
             className="h-full w-full bg-black"
-            src={iframeSrc}
-            title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
           />
         ) : videoUrl && isDirectVideoUrl(videoUrl) ? (
           <video
-            key={`${lessonId}-${videoUrl}`}
+            key={`video-${lessonId}-${videoUrl}`}
             ref={videoRef}
-            className="h-full w-full bg-black"
+            className="h-full w-full bg-black object-contain"
             controls
-            preload="metadata"
+            preload="auto"
             src={videoUrl}
             title={title}
             onLoadedMetadata={handleLoadedMetadata}
