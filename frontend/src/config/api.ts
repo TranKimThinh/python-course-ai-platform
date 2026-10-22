@@ -1,6 +1,5 @@
 export const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
-  //"https://python-course-ai-platform-backend.onrender.com/api/v1"
   "http://127.0.0.1:3000/api/v1"
 ).replace(/\/+$/, "");
 

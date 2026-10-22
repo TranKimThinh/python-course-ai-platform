@@ -179,7 +179,7 @@ function ProfilePage() {
 
             <SecurityForm
               data={passwordForm}
-              errors={passwordErrors}
+              errors={passwordErrors} 
               onChange={(nextData) => {
                 setPasswordForm(nextData);
                 setPasswordErrors({});
