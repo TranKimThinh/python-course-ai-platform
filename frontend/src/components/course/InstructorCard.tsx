@@ -7,10 +7,10 @@ function InstructorCard() {
       <h2 className="mb-5 text-lg font-extrabold text-slate-950">Giảng viên</h2>
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-500 text-xl font-extrabold text-white shadow-lg shadow-indigo-200">
-          NA
+          KT
         </div>
         <div>
-          <p className="font-extrabold text-slate-950">Nguyễn Văn A</p>
+          <p className="font-extrabold text-slate-950">K_Team</p>
           <p className="mt-1 text-sm font-medium text-indigo-600">Chuyên gia AI & Software Engineer</p>
         </div>
       </div>

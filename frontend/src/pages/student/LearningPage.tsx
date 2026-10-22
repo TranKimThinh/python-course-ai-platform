@@ -291,6 +291,7 @@ function LearningPage() {
     [handleCompleteLesson, lessonProgress?.isCompleted],
   );
 
+  
   const handleSendMessage = async () => {
     const trimmedInput = chatInput.trim();
     if (!trimmedInput || isAiReplying) return;
@@ -306,22 +307,61 @@ function LearningPage() {
     setIsAiReplying(true);
 
     try {
-      // Dùng transcript/tóm tắt bài học làm ngữ cảnh để AI trả lời đúng nội dung đang học
-      const lessonContext = lesson?.transcript || lesson?.summary?.summaryText || lesson?.description || null;
-      const answer = await askAI({
+      // Dùng transcript/tóm tắt bài học làm ngữ cảnh để AI trả lời đúng nội dung đang học.
+      // API chat stream hiện tại không nhận context, nên chỉ gửi các trường API hỗ trợ.
+      const parsedLessonId = lesson?.id ? Number(lesson.id) : null;
+      const numericLessonId =
+        parsedLessonId !== null && Number.isFinite(parsedLessonId)
+          ? parsedLessonId
+          : null;
+
+      await askAI({
         question: trimmedInput,
-        lessonId: lesson?.id,
-        context: lessonContext,
+        sessionId: null,
+        lessonId: numericLessonId,
+        onChunk: (text) => {
+          setChatMessages((current) => {
+            const aiMessageId = `message-${userMessage.id}-ai`;
+            const existingIndex = current.findIndex(
+              (message) => message.id === aiMessageId,
+            );
+
+            const nextMessage: ChatMessage = {
+              id: aiMessageId,
+              role: "ai",
+              content: text,
+            };
+
+            if (existingIndex === -1) {
+              return [...current, nextMessage];
+            }
+
+            return current.map((message, index) =>
+              index === existingIndex ? nextMessage : message,
+            );
+          });
+        },
+        onSessionIdReceived: () => {
+          // Giữ tương thích với callback mà API yêu cầu.
+          // Chưa lưu session ID vì component hiện tại chưa quản lý session.
+        },
       });
+    } catch (error) {
+      console.error("Không thể gửi câu hỏi đến AI:", error);
 
       setChatMessages((current) => [
         ...current,
-        { id: `message-${Date.now()}-ai`, role: "ai", content: answer },
+        {
+          id: `message-${userMessage.id}-error`,
+          role: "ai",
+          content: "Không thể kết nối AI lúc này. Vui lòng thử lại.",
+        },
       ]);
     } finally {
       setIsAiReplying(false);
     }
   };
+
 
   const handleSelectSuggestedQuestion = (question: string) => {
     setChatInput(question);
