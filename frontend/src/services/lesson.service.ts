@@ -27,5 +27,6 @@ export function generateLessonTranscript(lessonId: string | number) {
 }
 
 export function getLessonSummary(lessonId: string) {
-  return apiFetch(`/lessons/${encodeURIComponent(lessonId)}/summary`);
+  // Summary is returned by resources; the backend has no /summary GET route.
+  return getLessonResources(lessonId);
 }

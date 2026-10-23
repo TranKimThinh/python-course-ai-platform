@@ -101,13 +101,20 @@ function ActivityRow({ row }: { row: AdminDashboardActivity }) {
 
 function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardData | null>(null);
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
-    const result = await getAdminDashboard();
-    setData(result);
-    setIsLoading(false);
+    setError("");
+    try {
+      setData(await getAdminDashboard());
+    } catch (error) {
+      setData(null);
+      setError(error instanceof Error ? error.message : "Không thể tải dashboard.");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -136,6 +143,7 @@ function AdminDashboardPage() {
           </div>
         </div>
 
+        {error && <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">{error} <button onClick={loadDashboard} className="underline">Thử lại</button></div>}
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {statCardConfigs.map((config) => (
@@ -150,7 +158,7 @@ function AdminDashboardPage() {
               </div>
               <p className="text-sm text-on-surface-variant font-medium">{config.label}</p>
               <p className="text-3xl font-bold mt-1 text-on-surface">
-                {isLoading ? "..." : formatNumber(data?.stats[config.key] ?? 0)}
+                {isLoading ? "..." : (data ? formatNumber(data.stats[config.key]) : "—")}
               </p>
             </div>
           ))}

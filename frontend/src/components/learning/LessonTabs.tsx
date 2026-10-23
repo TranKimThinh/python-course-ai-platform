@@ -193,15 +193,15 @@ function QuizTab({ lessonId }: { lessonId: string }) {
             <ClipboardList size={22} />
           </span>
           <div>
-            <h2 className="font-extrabold text-slate-950">Kiểm tra nhanh kiến thức bài học</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">5 câu hỏi</p>
+            <h2 className="font-extrabold text-slate-950">Luyện tập vòng lặp Python</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">5 câu hỏi mẫu · Không tính vào tiến độ</p>
           </div>
         </div>
         <Link
           to={`/quiz/${lessonId}`}
           className="focus-ring inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
         >
-          Bắt đầu làm quiz
+          Bắt đầu luyện tập
         </Link>
       </div>
     </div>

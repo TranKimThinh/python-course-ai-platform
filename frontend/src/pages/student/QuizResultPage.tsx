@@ -13,7 +13,10 @@ import {
   Terminal,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+import { questions, quizInfo, scorePractice, type PracticeResult } from "../../services/practiceQuiz";
+import { useAuth } from "../../context/AuthContext";
 
 interface QuizResultSummary {
   totalQuestions: number;
@@ -56,61 +59,6 @@ interface ConfettiParticle {
   rotation: number;
   rotationSpeed: number;
 }
-
-const quizSummary: QuizResultSummary = {
-  totalQuestions: 5,
-  correctAnswers: 4,
-  scorePercent: 80,
-  courseName: "Python cơ bản",
-  lessonName: "Cấu trúc dữ liệu Python",
-  messageTitle: "Tuyệt vời! Bạn đã hoàn thành.",
-  messageDescription:
-    "Bạn đã nắm vững phần lớn kiến thức về Cấu trúc dữ liệu Python. Chỉ cần một chút luyện tập nữa là hoàn hảo!",
-};
-
-const reviewQuestions: ReviewQuestion[] = [
-  {
-    id: "review-1",
-    number: 1,
-    status: "correct",
-    difficulty: "DỄ",
-    question: "Hàm nào dùng để thêm một phần tử vào cuối List trong Python?",
-    answers: [
-      { id: "append", content: "append()", isCorrect: true, isUserChoice: true },
-      { id: "insert", content: "insert()" },
-    ],
-  },
-  {
-    id: "review-2",
-    number: 2,
-    status: "incorrect",
-    difficulty: "TRUNG BÌNH",
-    question: "Sự khác biệt chính giữa List và Tuple là gì?",
-    answers: [
-      {
-        id: "user-answer",
-        content: "List có kích thước cố định, Tuple có thể thay đổi.",
-        isUserChoice: true,
-      },
-      {
-        id: "correct-answer",
-        content: "List là mutable (có thể sửa), Tuple là immutable (không thể sửa).",
-        isCorrect: true,
-      },
-    ],
-    explanation:
-      "Trong Python, List cho phép bạn thêm, xóa hoặc thay đổi giá trị của các phần tử sau khi tạo. Ngược lại, Tuple sau khi được tạo ra thì không thể thay đổi nội dung, giúp bảo vệ dữ liệu và tối ưu hiệu suất bộ nhớ.",
-  },
-  {
-    id: "review-3",
-    number: 3,
-    status: "correct",
-    difficulty: "NÂNG CAO",
-    question: "Kết quả của đoạn code sau là gì?",
-    code: 'my_dict = {"a": 1, "b": 2}\nprint(my_dict.get("c", 0))',
-    answers: [{ id: "zero", content: "0", isCorrect: true, isUserChoice: true }],
-  },
-];
 
 const difficultyStyles: Record<ReviewQuestion["difficulty"], string> = {
   DỄ: "bg-emerald-100 text-emerald-700",
@@ -323,10 +271,32 @@ function ReviewCard({ question }: { question: ReviewQuestion }) {
 function QuizResultPage() {
   const navigate = useNavigate();
   const { lessonId = "lesson-4" } = useParams();
+  const { user } = useAuth();
+  const location = useLocation();
+  const result = location.state as (PracticeResult & { userId?: number }) | null;
+  if (!result || result.lessonId !== lessonId || result.userId !== user?.id || !result.answers || typeof result.answers !== "object") {
+    return <div className="page-container py-12"><p>Chưa có kết quả cho bài luyện tập này.</p><button className="mt-4 underline" onClick={() => navigate(`/quiz/${lessonId}`)}>Làm bài luyện tập</button></div>;
+  }
+  const correctAnswers = scorePractice(result.answers);
+  const quizSummary: QuizResultSummary = {
+    ...quizInfo, correctAnswers, scorePercent: correctAnswers / questions.length * 100,
+    messageTitle: "Bạn đã hoàn thành bài luyện tập!",
+    messageDescription: `Bạn trả lời đúng ${correctAnswers}/${questions.length} câu. Kết quả luyện tập chưa được lưu vào tiến độ khóa học.`,
+  };
+  const reviewQuestions: ReviewQuestion[] = questions.map((question) => ({
+    id: question.id, number: question.questionNumber, difficulty: "DỄ",
+    status: result.answers[question.id] === question.correctOptionId ? "correct" : "incorrect",
+    question: question.question, code: question.code,
+    answers: question.options.map((option) => ({
+      id: option.id, content: option.content, isCorrect: option.id === question.correctOptionId,
+      isUserChoice: result.answers[question.id] === option.id,
+    })),
+    explanation: result.answers[question.id] ? undefined : "Bạn chưa trả lời câu hỏi này.",
+  }));
 
   return (
     <div className="relative bg-[#f8f9ff] text-[#0b1c30]">
-      <ConfettiCanvas />
+      {correctAnswers === questions.length && <ConfettiCanvas />}
 
       <div className="page-container relative z-20 py-12 sm:py-16">
         <section className="mx-auto max-w-3xl text-center" aria-labelledby="result-title">
@@ -357,11 +327,11 @@ function QuizResultPage() {
           <div className="mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => navigate("/learning/python-basic/lesson-4")}
+              onClick={() => navigate("/courses")}
               className="flex items-center justify-center gap-2 rounded-xl bg-[#3525cd] px-6 py-4 font-bold text-white shadow-lg shadow-indigo-200 transition hover:brightness-110 active:scale-95"
             >
               <RefreshCw size={20} aria-hidden={true} />
-              Học lại bài này
+              Quay lại khóa học
             </button>
             <button
               type="button"
@@ -378,16 +348,16 @@ function QuizResultPage() {
           <div className="flex flex-col gap-4 border-b border-[#c7c4d8] pb-5 sm:flex-row sm:items-center sm:justify-between">
             <h2 id="review-title" className="flex items-center gap-3 text-2xl font-bold">
               <CheckSquare size={25} className="text-[#3525cd]" aria-hidden={true} />
-              Xem lại câu sai
+              Xem lại đáp án
             </h2>
             <div className="flex items-center gap-5 text-sm font-medium text-[#464555]">
               <span className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-[#3525cd]" aria-hidden={true} />
-                Đúng (4)
+                Đúng ({correctAnswers})
               </span>
               <span className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-[#ba1a1a]" aria-hidden={true} />
-                Sai (1)
+                Sai ({questions.length - correctAnswers})
               </span>
             </div>
           </div>
@@ -406,12 +376,12 @@ function QuizResultPage() {
           <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
             <button
               type="button"
-              onClick={() => navigate("/learning/python-basic/lesson-4/transcript")}
+              onClick={() => navigate("/courses")}
               className="rounded-xl bg-[#eff4ff] p-6 text-left transition-colors hover:bg-[#e5eeff]"
             >
               <BookOpen size={28} className="text-[#3525cd]" aria-hidden={true} />
-              <h3 className="mt-4 text-lg font-bold">Đọc tài liệu List</h3>
-              <p className="mt-2 leading-6 text-[#464555]">Xem lại các phương thức xử lý mảng nâng cao.</p>
+              <h3 className="mt-4 text-lg font-bold">Tìm bài học</h3>
+              <p className="mt-2 leading-6 text-[#464555]">Chọn bài học để xem lại tài liệu.</p>
             </button>
 
             <button
@@ -421,17 +391,17 @@ function QuizResultPage() {
             >
               <Terminal size={28} className="text-[#0058be]" aria-hidden={true} />
               <h3 className="mt-4 text-lg font-bold">Thực hành Code</h3>
-              <p className="mt-2 leading-6 text-[#464555]">Làm bài tập thực tế về Dictionary và Tuple.</p>
+              <p className="mt-2 leading-6 text-[#464555]">Luyện tập lại các câu hỏi về vòng lặp Python.</p>
             </button>
 
             <button
               type="button"
-              onClick={() => navigate("/learning/python-basic/lesson-5")}
+              onClick={() => navigate("/courses")}
               className="rounded-xl bg-[#e2dfff] p-6 text-left text-[#0f0069] transition hover:brightness-95"
             >
               <Rocket size={28} aria-hidden={true} />
-              <h3 className="mt-4 text-lg font-bold">Học bài tiếp theo</h3>
-              <p className="mt-2 leading-6">Làm quen với Function và Module trong Python.</p>
+              <h3 className="mt-4 text-lg font-bold">Tiếp tục học</h3>
+              <p className="mt-2 leading-6">Chọn khóa học và bài học muốn tiếp tục.</p>
             </button>
           </div>
         </section>

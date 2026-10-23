@@ -2,8 +2,10 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) return <div role="status" className="p-8 text-center">Đang khôi phục phiên đăng nhập...</div>;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;

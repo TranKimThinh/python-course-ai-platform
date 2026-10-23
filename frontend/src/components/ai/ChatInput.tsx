@@ -20,9 +20,9 @@ function ChatInput({ value, isTyping, onChange, onSend }: ChatInputProps) {
   }, [value]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      onSend();
+      if (!isTyping && value.trim()) onSend();
     }
   };
 
@@ -32,7 +32,7 @@ function ChatInput({ value, isTyping, onChange, onSend }: ChatInputProps) {
         <button
           type="button"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"
-          aria-label="Đính kèm file"
+          disabled title="Đính kèm chưa khả dụng" aria-label="Đính kèm file chưa khả dụng"
         >
           <Paperclip size={18} />
         </button>
@@ -50,7 +50,7 @@ function ChatInput({ value, isTyping, onChange, onSend }: ChatInputProps) {
         <button
           type="button"
           className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600 sm:flex"
-          aria-label="Ghi âm"
+          disabled title="Ghi âm chưa khả dụng" aria-label="Ghi âm chưa khả dụng"
         >
           <Mic size={18} />
         </button>

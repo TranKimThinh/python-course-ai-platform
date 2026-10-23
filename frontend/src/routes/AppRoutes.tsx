@@ -1,47 +1,49 @@
+import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 
 import MainLayout from "../components/layout/MainLayout";
 
-import HomePage from "../pages/HomePage";
+const HomePage = lazy(() => import("../pages/HomePage"));
 
 // Auth
-import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
-import LoginPage from "../pages/auth/LoginPage";
-import RegisterPage from "../pages/auth/RegisterPage";
+const ForgotPasswordPage = lazy(() => import("../pages/auth/ForgotPasswordPage"));
+const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"));
 
 // Student
-import AIAssistantPage from "../pages/student/AIAssistantPage";
-import CourseDetailPage from "../pages/student/CourseDetailPage";
-import CourseListPage from "../pages/student/CourseListPage";
-import LessonTranscriptPage from "../pages/student/LessonTranscriptPage";
-import LearningPage from "../pages/student/LearningPage";
-import MyProgressPage from "../pages/student/MyProgressPage";
-import ProfilePage from "../pages/student/ProfilePage";
-import ProfileActivitiesPage from "../pages/profile/ProfileActivitiesPage";
-import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
-import QuizPage from "../pages/student/QuizPage";
-import QuizResultPage from "../pages/student/QuizResultPage";
+const AIAssistantPage = lazy(() => import("../pages/student/AIAssistantPage"));
+const CourseDetailPage = lazy(() => import("../pages/student/CourseDetailPage"));
+const CourseListPage = lazy(() => import("../pages/student/CourseListPage"));
+const LessonTranscriptPage = lazy(() => import("../pages/student/LessonTranscriptPage"));
+const LearningPage = lazy(() => import("../pages/student/LearningPage"));
+const MyProgressPage = lazy(() => import("../pages/student/MyProgressPage"));
+const ProfilePage = lazy(() => import("../pages/student/ProfilePage"));
+const ProfileActivitiesPage = lazy(() => import("../pages/profile/ProfileActivitiesPage"));
+const ProfileSettingsPage = lazy(() => import("../pages/profile/ProfileSettingsPage"));
+const QuizPage = lazy(() => import("../pages/student/QuizPage"));
+const QuizResultPage = lazy(() => import("../pages/student/QuizResultPage"));
 
 // Admin
-import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
-import CourseManagementPage from "../pages/admin/CourseManagementPage";
-import LessonManagementPage from "../pages/admin/LessonManagementPage";
-import VideoUploadPage from "../pages/admin/VideoUploadPage";
-import VideoManagementPage from "../pages/admin/VideoManagementPage";
-import QuizManagementPage from "../pages/admin/QuizManagementPage";
-import StudentManagementPage from "../pages/admin/StudentManagementPage";
+const AdminDashboardPage = lazy(() => import("../pages/admin/AdminDashboardPage"));
+const CourseManagementPage = lazy(() => import("../pages/admin/CourseManagementPage"));
+const LessonManagementPage = lazy(() => import("../pages/admin/LessonManagementPage"));
+const VideoUploadPage = lazy(() => import("../pages/admin/VideoUploadPage"));
+const VideoManagementPage = lazy(() => import("../pages/admin/VideoManagementPage"));
+const QuizManagementPage = lazy(() => import("../pages/admin/QuizManagementPage"));
+const StudentManagementPage = lazy(() => import("../pages/admin/StudentManagementPage"));
 
 // Other
 import ProtectedRoute from "./ProtectedRoute";
 import AdminProtectedRoute from "./AdminProtectedRoute";
-import AboutPage from "../pages/static/AboutPage";
-import ContactPage from "../pages/static/ContactPage";
-import GuidePage from "../pages/static/GuidePage";
-import PrivacyPage from "../pages/static/PrivacyPage";
-import TermsPage from "../pages/static/TermsPage";
+const AboutPage = lazy(() => import("../pages/static/AboutPage"));
+const ContactPage = lazy(() => import("../pages/static/ContactPage"));
+const GuidePage = lazy(() => import("../pages/static/GuidePage"));
+const PrivacyPage = lazy(() => import("../pages/static/PrivacyPage"));
+const TermsPage = lazy(() => import("../pages/static/TermsPage"));
 
 function AppRoutes() {
   return (
+    <Suspense fallback={<div role="status" className="p-8 text-center">Loading...</div>}>
     <Routes>
       {/* Public + Student */}
       <Route element={<MainLayout />}>
@@ -84,6 +86,7 @@ function AppRoutes() {
         <Route path="/contact" element={<ContactPage />} />
       </Route>
 
+      <Route path="*" element={<div className="p-12 text-center"><h1>Không tìm thấy trang</h1><a href="/">Về trang chủ</a></div>} />
       {/* Admin routes: để riêng, KHÔNG nằm trong MainLayout */}
       <Route element={<AdminProtectedRoute />}>
         <Route path="/admin" element={<AdminDashboardPage />} />
@@ -95,6 +98,7 @@ function AppRoutes() {
         <Route path="/admin/students" element={<StudentManagementPage />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }
 

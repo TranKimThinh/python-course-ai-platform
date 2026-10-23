@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+
 import { type TranscriptSegment } from "./lessonTypes";
 
 interface TranscriptCardProps {
@@ -16,14 +16,12 @@ function TranscriptCard({ segment }: TranscriptCardProps) {
           <h3 className="font-extrabold text-slate-950">{segment.title}</h3>
           <p className="mt-2 text-sm leading-7 text-slate-600">{segment.content}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => console.log("Play transcript timestamp:", segment.time)}
+        <span
           className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 opacity-70 shadow-sm transition hover:bg-indigo-600 hover:text-white group-hover:opacity-100"
-          aria-label={`Phát tại ${segment.time}`}
+          aria-label={`Mốc thời gian ${segment.time}`}
         >
-          <Play size={17} className="ml-0.5 fill-current" />
-        </button>
+          {segment.time}
+        </span>
       </div>
     </article>
   );

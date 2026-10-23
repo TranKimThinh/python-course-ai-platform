@@ -13,6 +13,7 @@ export interface TranscriptSegment {
 }
 
 export interface SummaryData {
+  summaryText?: string;
   keyPoints: string[];
   concepts: string[];
   codeExample: string;

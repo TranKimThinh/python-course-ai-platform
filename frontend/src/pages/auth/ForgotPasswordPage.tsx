@@ -45,12 +45,7 @@ function ForgotPasswordPage() {
       return;
     }
 
-    console.log({ email: normalizedEmail });
-    setIsTransitioning(true);
-    transitionTimerRef.current = window.setTimeout(() => {
-      setIsSubmitted(true);
-      setIsTransitioning(false);
-    }, 400);
+    setEmailError("Chức năng khôi phục mật khẩu hiện chưa khả dụng. Vui lòng liên hệ hỗ trợ qua trang Liên hệ.");
   };
 
   return (
@@ -99,7 +94,7 @@ function ForgotPasswordPage() {
                 </span>
                 <h2 className="mt-6 text-3xl font-extrabold tracking-tight">Quên mật khẩu?</h2>
                 <p className="mt-3 leading-7 text-[#464555]">
-                  Nhập email đã đăng ký tài khoản. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu cho bạn.
+                  Nhập email đã đăng ký tài khoản. Vui lòng liên hệ hỗ trợ để được hướng dẫn khôi phục tài khoản.
                 </p>
 
                 <form onSubmit={handleSubmit} noValidate className="mt-7">

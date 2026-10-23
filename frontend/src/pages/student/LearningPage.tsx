@@ -16,6 +16,7 @@ import {
 } from "../../components/learning/learningTypes";
 import { getCourseLessons } from "../../services/course.service";
 import { getLessonById, getLessonResources } from "../../services/lesson.service";
+import { useAuth } from "../../context/AuthContext";
 import { askAI } from "../../services/chat.service";
 import {
   completeLesson,
@@ -48,7 +49,9 @@ function loadChatHistory(lessonId: string): ChatMessage[] {
     if (!stored) return getDefaultChatMessages();
 
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : getDefaultChatMessages();
+    return Array.isArray(parsed) && parsed.length > 0 && parsed.every((item) =>
+      item && typeof item.id === "string" && typeof item.content === "string" && ["ai", "user"].includes(item.role)
+    ) ? parsed : getDefaultChatMessages();
   } catch (error) {
     console.warn("Không thể đọc lịch sử chat đã lưu:", error);
     return getDefaultChatMessages();
@@ -65,6 +68,17 @@ function saveChatHistory(lessonId: string, messages: ChatMessage[]) {
 
 function LearningPage() {
   const { courseId, lessonId } = useParams();
+  const { user } = useAuth();
+  return <LearningPageContent key={`${user?.id}:${courseId}:${lessonId}`} />;
+}
+
+function LearningPageContent() {
+  const { courseId, lessonId } = useParams();
+  const { user } = useAuth();
+  const chatKey = user && lessonId ? `${user.id}:${lessonId}` : "";
+  const loadedChatKey = useRef("");
+  const chatRequest = useRef<AbortController | null>(null);
+  const chatSessionId = useRef<number | null>(null);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LessonTab>("overview");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -170,19 +184,23 @@ function LearningPage() {
     setIsCompleting(false);
   }, [lessonId]);
 
-  // Mỗi khi chuyển sang bài học khác, nạp lại lịch sử chat riêng của bài học đó
   useEffect(() => {
-    if (!lessonId) return;
-    setChatMessages(loadChatHistory(lessonId));
+    loadedChatKey.current = "";
+    chatRequest.current?.abort();
+    chatSessionId.current = null;
+    if (!chatKey) { setChatMessages([]); return; }
+    setChatMessages(loadChatHistory(chatKey));
+    loadedChatKey.current = chatKey;
     setChatInput("");
     setIsAiReplying(false);
-  }, [lessonId]);
+    return () => { chatRequest.current?.abort(); loadedChatKey.current = ""; };
+  }, [chatKey]);
 
-  // Lưu lại lịch sử chat mỗi khi có thay đổi
   useEffect(() => {
-    if (!lessonId || chatMessages.length === 0) return;
-    saveChatHistory(lessonId, chatMessages);
-  }, [chatMessages, lessonId]);
+    if (chatKey && loadedChatKey.current === chatKey && chatMessages.length) {
+      saveChatHistory(chatKey, chatMessages);
+    }
+  }, [chatMessages]);
 
   const handleSelectLesson = (nextLessonId: string) => {
     if (!courseId) return;
@@ -296,19 +314,28 @@ function LearningPage() {
     const trimmedInput = chatInput.trim();
     if (!trimmedInput || isAiReplying) return;
 
+    // 1. Thêm tin nhắn của User
     const userMessage: ChatMessage = {
       id: `message-${Date.now()}-user`,
       role: "user",
       content: trimmedInput,
     };
 
-    setChatMessages((current) => [...current, userMessage]);
+    // 2. Tạo sẵn một khung tin nhắn AI rỗng với ID cố định
+    const aiMessageId = `message-${Date.now()}-ai`;
+    const initialAiMessage: ChatMessage = {
+      id: aiMessageId,
+      role: "ai",
+      content: "",
+    };
+
+    setChatMessages((current) => [...current, userMessage, initialAiMessage]);
     setChatInput("");
     setIsAiReplying(true);
 
+    const controller = new AbortController();
+    chatRequest.current = controller;
     try {
-      // Dùng transcript/tóm tắt bài học làm ngữ cảnh để AI trả lời đúng nội dung đang học.
-      // API chat stream hiện tại không nhận context, nên chỉ gửi các trường API hỗ trợ.
       const parsedLessonId = lesson?.id ? Number(lesson.id) : null;
       const numericLessonId =
         parsedLessonId !== null && Number.isFinite(parsedLessonId)
@@ -317,48 +344,38 @@ function LearningPage() {
 
       await askAI({
         question: trimmedInput,
-        sessionId: null,
+        sessionId: chatSessionId.current,
+        signal: controller.signal,
         lessonId: numericLessonId,
         onChunk: (text) => {
-          setChatMessages((current) => {
-            const aiMessageId = `message-${userMessage.id}-ai`;
-            const existingIndex = current.findIndex(
-              (message) => message.id === aiMessageId,
-            );
-
-            const nextMessage: ChatMessage = {
-              id: aiMessageId,
-              role: "ai",
-              content: text,
-            };
-
-            if (existingIndex === -1) {
-              return [...current, nextMessage];
-            }
-
-            return current.map((message, index) =>
-              index === existingIndex ? nextMessage : message,
-            );
-          });
+          if (controller.signal.aborted) return;
+          setChatMessages((current) =>
+            current.map((message) =>
+              message.id === aiMessageId
+                ? { ...message, content: text }
+                : message,
+            ),
+          );
         },
-        onSessionIdReceived: () => {
-          // Giữ tương thích với callback mà API yêu cầu.
-          // Chưa lưu session ID vì component hiện tại chưa quản lý session.
+        onSessionIdReceived: (id) => {
+          if (!controller.signal.aborted) chatSessionId.current = id;
         },
       });
     } catch (error) {
-      console.error("Không thể gửi câu hỏi đến AI:", error);
-
-      setChatMessages((current) => [
-        ...current,
-        {
-          id: `message-${userMessage.id}-error`,
-          role: "ai",
-          content: "Không thể kết nối AI lúc này. Vui lòng thử lại.",
-        },
-      ]);
+      if (controller.signal.aborted) return;
+      console.error("Cannot send lesson question to AI:", error);
+      setChatMessages((current) =>
+        current.map((message) =>
+          message.id === aiMessageId
+            ? {
+                ...message,
+                content: error instanceof Error ? error.message : "Không thể kết nối AI lúc này. Vui lòng thử lại.",
+              }
+            : message,
+        ),
+      );
     } finally {
-      setIsAiReplying(false);
+      if (!controller.signal.aborted) setIsAiReplying(false);
     }
   };
 

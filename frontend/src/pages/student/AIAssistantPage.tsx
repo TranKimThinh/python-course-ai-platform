@@ -9,7 +9,11 @@ function AIAssistantPage() {
   
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   
+  const messageRequestId = useRef(0);
+  const streamController = useRef<AbortController | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Load danh sách session khi mở trang
@@ -18,32 +22,33 @@ function AIAssistantPage() {
       const data = await getChatSessions();
       setSessions(data);
     } catch (error) {
-      console.error("Lỗi tải danh sách hội thoại:", error);
-    }
-  };
-
-  // Load tin nhắn khi chọn session
-  const loadMessages = async (sessionId: number) => {
-    try {
-      const data = await getSessionMessages(sessionId);
-      setMessages(data);
-      scrollToBottom();
-    } catch (error) {
-      console.error("Lỗi tải tin nhắn:", error);
+      setErrorMessage("Không thể tải lịch sử hội thoại. Vui lòng thử lại.");
     }
   };
 
   useEffect(() => {
     loadSessions();
+    return () => { streamController.current?.abort(); messageRequestId.current += 1; };
   }, []);
 
-  useEffect(() => {
-    if (activeSessionId) {
-      loadMessages(activeSessionId);
-    } else {
-      setMessages([]);
+  const selectSession = async (sessionId: number | null) => {
+    if (isTyping) return;
+    const requestId = ++messageRequestId.current;
+    setActiveSessionId(sessionId);
+    setMessages([]);
+    setErrorMessage("");
+    setIsLoadingMessages(false);
+    if (sessionId === null) return;
+    setIsLoadingMessages(true);
+    try {
+      const data = await getSessionMessages(sessionId);
+      if (requestId === messageRequestId.current) { setMessages(data); scrollToBottom(); }
+    } catch {
+      if (requestId === messageRequestId.current) setErrorMessage("Không thể tải tin nhắn. Hãy chọn lại hội thoại.");
+    } finally {
+      if (requestId === messageRequestId.current) setIsLoadingMessages(false);
     }
-  }, [activeSessionId]);
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -56,7 +61,11 @@ function AIAssistantPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const question = inputValue.trim();
-    if (!question || isTyping) return;
+    if (!question || isTyping || isLoadingMessages) return;
+    messageRequestId.current += 1;
+    setErrorMessage("");
+    const controller = new AbortController();
+    streamController.current = controller;
 
     // 1. Thêm tin nhắn của User
     setMessages((prev) => [...prev, { id: Date.now(), role: "user", content: question }]);
@@ -71,13 +80,15 @@ function AIAssistantPage() {
     try {
       await askAI({
         question,
+        signal: controller.signal,
         sessionId: activeSessionId,
         onSessionIdReceived: (newId) => {
-          if (!activeSessionId) {
+          if (!controller.signal.aborted && !activeSessionId) {
             setActiveSessionId(newId);
           }
         },
         onChunk: (text) => {
+          if (controller.signal.aborted) return;
           // Cập nhật liên tục đoạn text stream vào khung chat của AI
           setMessages((prev) =>
             prev.map((msg) => (msg.id === aiMsgId ? { ...msg, content: text } : msg))
@@ -89,13 +100,14 @@ function AIAssistantPage() {
       // Load lại sidebar để cập nhật updated_at
       loadSessions();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (controller.signal.aborted) return;
       console.error("Lỗi:", error);
       setMessages((prev) =>
         prev.map((msg) => (msg.id === aiMsgId ? { ...msg, content: "Xin lỗi, đã có lỗi kết nối tới AI." } : msg))
       );
     } finally {
-      setIsTyping(false);
+      if (!controller.signal.aborted) setIsTyping(false);
     }
   };
 
@@ -116,7 +128,8 @@ function AIAssistantPage() {
           <h1 className="text-lg font-extrabold text-slate-950 shrink-0">Lịch sử trò chuyện</h1>
           <button
             type="button"
-            onClick={() => { setActiveSessionId(null); setMessages([]); }}
+            disabled={isTyping}
+            onClick={() => selectSession(null)}
             className="focus-ring mt-4 shrink-0 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
           >
             <MessageSquarePlus size={18} aria-hidden={true} />
@@ -130,7 +143,8 @@ function AIAssistantPage() {
                 <button
                   key={session.id}
                   type="button"
-                  onClick={() => setActiveSessionId(session.id)}
+                  disabled={isTyping}
+                  onClick={() => selectSession(session.id)}
                   className={`focus-ring shrink-0 min-w-64 rounded-2xl px-4 py-3 text-left transition lg:w-full ${
                     isActive ? "bg-indigo-100 text-indigo-950" : "bg-white text-slate-700 hover:bg-slate-100 shadow-sm border border-slate-100"
                   }`}
@@ -151,7 +165,8 @@ function AIAssistantPage() {
           </header>
 
           <div ref={chatContainerRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50/50 p-4 sm:p-6 custom-scrollbar">
-            {messages.length === 0 && (
+            {isLoadingMessages && <p role="status">Đang tải tin nhắn...</p>}
+            {!isLoadingMessages && messages.length === 0 && (
               <div className="flex h-full min-h-80 flex-col items-center justify-center text-center">
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
                   <Bot size={28} aria-hidden={true} />
@@ -196,6 +211,7 @@ function AIAssistantPage() {
             )}
           </div>
 
+          {errorMessage && <p role="alert" className="px-5 py-2 text-sm text-red-700">{errorMessage}</p>}
           <form onSubmit={handleSubmit} className="border-t border-slate-100 bg-white p-4 sm:p-5 shrink-0">
             <div className="flex items-end gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all">
               <textarea
@@ -203,7 +219,7 @@ function AIAssistantPage() {
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                     event.preventDefault();
                     event.currentTarget.form?.requestSubmit();
                   }
@@ -213,7 +229,7 @@ function AIAssistantPage() {
               />
               <button
                 type="submit"
-                disabled={isTyping || !inputValue.trim()}
+                disabled={isTyping || isLoadingMessages || !inputValue.trim()}
                 className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send size={17} aria-hidden={true} />

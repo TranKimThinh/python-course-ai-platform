@@ -21,6 +21,8 @@ interface CourseRow {
   status: CourseStatus;
   createdAt: string;
   thumbnail: string;
+  description?: string;
+  price?: string;
 }
 
 const LEVEL_VI_TO_API: Record<CourseLevel, AdminCoursePayload["level"]> = {
@@ -83,11 +85,11 @@ function CourseEditPanel({ open, onClose, course, onSubmit, isSaving }: EditPane
     if (course) {
       setForm({
         title: course.title,
-        description: "", // Danh sách admin không trả description đầy đủ, để admin tự viết lại nếu cần đổi
+        description: course.description ?? "",
         thumbnailUrl: course.thumbnail,
         level: course.level,
         status: course.status,
-        price: "0",
+        price: course.price ?? "",
       });
     } else {
       setForm(emptyForm);
@@ -285,21 +287,26 @@ function CourseManagementPage() {
   };
 
   const handleSubmitCourse = async (form: CourseFormState) => {
+    if (form.price.trim() && (!Number.isFinite(Number(form.price)) || Number(form.price) < 0)) {
+      alert("Giá khóa học phải là số không âm.");
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload: AdminCoursePayload = {
+      const payload: Partial<AdminCoursePayload> = {
         title: form.title.trim(),
-        description: form.description.trim(),
+        ...(!selectedCourse || selectedCourse.description !== undefined || form.description.trim()
+          ? { description: form.description.trim() } : {}),
         thumbnail_url: form.thumbnailUrl.trim() || undefined,
         level: LEVEL_VI_TO_API[form.level],
         status: form.status,
-        price: Number(form.price) || 0,
+        ...(form.price.trim() ? { price: Number(form.price) } : {}),
       };
 
       if (selectedCourse) {
         await updateCourseAdmin(selectedCourse.id, payload);
       } else {
-        await createCourseAdmin(payload);
+        await createCourseAdmin(payload as AdminCoursePayload);
       }
 
       setPanelOpen(false);
