@@ -28,7 +28,12 @@ import {
   unwrapProgressData,
 } from "../../services/progress.service";
 
-const suggestedQuestions = ["Tóm tắt bài học này", "Giải thích phần khó hiểu nhất", "Cho ví dụ dễ hiểu hơn"];
+const suggestedQuestions = [
+  "Tóm tắt bài học này",
+  "Giải thích phần khó hiểu nhất",
+  "Cho ví dụ dễ hiểu hơn",
+  "Tạo quiz cho bài học",
+];
 
 // Lưu lịch sử chat AI riêng theo từng bài học (localStorage), vì backend chưa có API lưu lịch sử.
 const CHAT_HISTORY_PREFIX = "pyai_lesson_chat:";

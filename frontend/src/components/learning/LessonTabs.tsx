@@ -1,5 +1,5 @@
-import { ClipboardList, FileText, ListChecks, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { FileText, ListChecks, Search } from "lucide-react";
+import LessonQuizTab from "./LessonQuizTab";
 import { type LessonSummary, type LessonTab, type TranscriptSegment } from "./learningTypes";
 
 interface LessonTabsProps {
@@ -64,7 +64,7 @@ function LessonTabs({
           />
         )}
         {activeTab === "summary" && <SummaryTab summary={summary} />}
-        {activeTab === "quiz" && <QuizTab lessonId={lessonId} />}
+        {activeTab === "quiz" && <LessonQuizTab lessonId={lessonId} />}
       </div>
     </section>
   );
@@ -180,30 +180,6 @@ function SummaryContent({ summary }: { summary: LessonSummary }) {
           </ul>
         </div>
       )}
-    </div>
-  );
-}
-
-function QuizTab({ lessonId }: { lessonId: string }) {
-  return (
-    <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-blue-50 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <ClipboardList size={22} />
-          </span>
-          <div>
-            <h2 className="font-extrabold text-slate-950">Luyện tập vòng lặp Python</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">5 câu hỏi mẫu · Không tính vào tiến độ</p>
-          </div>
-        </div>
-        <Link
-          to={`/quiz/${lessonId}`}
-          className="focus-ring inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
-        >
-          Bắt đầu luyện tập
-        </Link>
-      </div>
     </div>
   );
 }

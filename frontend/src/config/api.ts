@@ -66,6 +66,7 @@ export async function apiFetch<T>(
         errorBody?.message ||
         errorBody?.detail?.message ||
         (typeof errorBody?.detail === "string" ? errorBody.detail : undefined) ||
+        (Array.isArray(errorBody?.detail) ? errorBody.detail.map((item: { loc?: Array<string | number>; msg?: string }) => `${item.loc?.slice(1).join(".") ?? ""}: ${item.msg ?? "Dữ liệu không hợp lệ"}`).join("\n") : undefined) ||
         errorBody?.error ||
         message;
     } else {

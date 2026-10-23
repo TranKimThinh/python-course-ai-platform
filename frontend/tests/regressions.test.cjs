@@ -68,13 +68,6 @@ test('dashboard surfaces failures instead of fabricating zero stats', async () =
   await assert.rejects(invalid.getAdminDashboard(), /dashboard/);
 });
 
-test('practice results reflect actual answers including unanswered questions', () => {
-  const { questions, scorePractice } = load('services/practiceQuiz.ts');
-  assert.equal(scorePractice({}), 0);
-  assert.equal(scorePractice(Object.fromEntries(questions.map(q => [q.id, q.correctOptionId]))), questions.length);
-  assert.equal(scorePractice({ q1: 'c', q2: 'a' }), 1);
-});
-
 test('chat forwards cancellation and accumulates UTF-8 stream chunks', async () => {
   global.localStorage = storage(); global.sessionStorage = storage();
   const controller = new AbortController();
@@ -126,6 +119,57 @@ test('lesson summary uses the resources API supported by the backend', async () 
     return resources;
   } } });
   assert.deepEqual(await service.getLessonSummary('12'), resources);
+});
+
+test('quiz service reads per-lesson metadata and sends choices for server grading', async () => {
+  const calls = [];
+  const service = load('services/quiz.service.ts', { '../config/api': { apiFetch: async (path, options) => {
+    calls.push({ path, options });
+    return { data: path.includes('/lessons/') ? null : { id: 12 } };
+  } } });
+  assert.equal(await service.getLessonQuiz('4'), null);
+  await service.startQuiz(7);
+  await service.submitQuiz(7, 'signed-attempt', { 42: 99 });
+  assert.deepEqual(calls.map(c => c.path), ['/lessons/4/quiz', '/quizzes/7/start', '/quizzes/7/submit']);
+  assert.equal(calls[1].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[2].options.body), { attemptToken: 'signed-attempt', answers: [{ questionId: 42, optionId: 99 }] });
+});
+
+test('quiz draft save and publish are distinct admin actions', async () => {
+  const calls = [];
+  const service = load('services/quiz.service.ts', { '../config/api': { apiFetch: async (path, options) => { calls.push({ path, options }); return { data: { id: 7 } }; } } });
+  const draft = { title: 'Quiz', durationSeconds: 600, questions: [] };
+  await service.saveQuizDraft('4', draft);
+  await service.saveQuizDraft('4', draft, 7);
+  await service.publishQuiz(7);
+  assert.deepEqual(calls.map(c => [c.path, c.options.method]), [
+    ['/admin/lessons/4/quiz', 'POST'], ['/admin/quizzes/7', 'PUT'], ['/admin/quizzes/7/publish', 'POST'],
+  ]);
+});
+
+test('published quiz is clearly read-only rather than presented as pending', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { QuizSaveStatus } = load('pages/admin/QuizManagementPage.tsx', {
+    '../../components/admin/AdminLayout': { default: () => null },
+    '../../services/adminLesson.service': {},
+    '../../services/quiz.service': {},
+    'react-router-dom': { Link: 'a' },
+  });
+  const render = props => renderToStaticMarkup(React.createElement(QuizSaveStatus, { published: false, busy: false, message: '', error: '', ...props }));
+  const published = render({ published: true });
+  assert.match(published, /Đã công khai/);
+  assert.match(published, /chế độ chỉ xem/);
+  assert.doesNotMatch(published, /vui lòng chờ/);
+  assert.match(render({ busy: true }), /vui lòng chờ/);
+  assert.match(render({ message: 'Đã lưu bản nháp.' }), /Đã lưu bản nháp/);
+  assert.match(render({ error: 'Không thể lưu' }), /role="alert"/);
+});
+
+test('validation failures display field details for quiz editors', async () => {
+  global.localStorage = storage(); global.sessionStorage = storage();
+  global.fetch = async () => Response.json({ detail: [{ loc: ['body', 'questions', 0, 'explanation'], msg: 'Field required' }] }, { status: 422 });
+  await assert.rejects(load('config/api.ts').apiFetch('/admin/quizzes/1'), /questions.0.explanation: Field required/);
 });
 
 test('video rerenders do not flush progress repeatedly; unmount still saves once', async () => {
