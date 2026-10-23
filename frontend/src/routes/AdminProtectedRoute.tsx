@@ -2,8 +2,10 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function AdminProtectedRoute() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) return <div role="status" className="p-8 text-center">Đang khôi phục phiên đăng nhập...</div>;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;

@@ -2,100 +2,8 @@ import { ArrowLeft, GraduationCap, Lightbulb, Terminal, Timer } from "lucide-rea
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-interface QuizOption {
-  id: string;
-  label: "A" | "B" | "C" | "D";
-  content: string;
-}
-
-interface QuizQuestion {
-  id: string;
-  questionNumber: number;
-  question: string;
-  code?: string;
-  options: QuizOption[];
-  correctOptionId?: string;
-}
-
-interface QuizInfo {
-  courseName: string;
-  lessonName: string;
-  totalQuestions: number;
-  durationSeconds: number;
-}
-
-const quizInfo: QuizInfo = {
-  courseName: "Python cơ bản",
-  lessonName: "Vòng lặp trong Python",
-  totalQuestions: 5,
-  durationSeconds: 14 * 60 + 56,
-};
-
-const questions: QuizQuestion[] = [
-  {
-    id: "q1",
-    questionNumber: 1,
-    question:
-      "Trong Python, từ khóa nào được sử dụng để bắt đầu một vòng lặp lặp lại qua một chuỗi (sequence)?",
-    code: 'fruits = ["apple", "banana"]\n... fruit in fruits:\n    print(fruit)',
-    options: [
-      { id: "a", label: "A", content: "vòng_lặp" },
-      { id: "b", label: "B", content: "while" },
-      { id: "c", label: "C", content: "for" },
-      { id: "d", label: "D", content: "repeat" },
-    ],
-    correctOptionId: "c",
-  },
-  {
-    id: "q2",
-    questionNumber: 2,
-    question: "Hàm nào thường được dùng để tạo một dãy số cho vòng lặp for?",
-    code: "for number in ...(5):\n    print(number)",
-    options: [
-      { id: "a", label: "A", content: "sequence()" },
-      { id: "b", label: "B", content: "range()" },
-      { id: "c", label: "C", content: "numbers()" },
-      { id: "d", label: "D", content: "list()" },
-    ],
-    correctOptionId: "b",
-  },
-  {
-    id: "q3",
-    questionNumber: 3,
-    question: "Từ khóa nào kết thúc ngay vòng lặp hiện tại?",
-    options: [
-      { id: "a", label: "A", content: "stop" },
-      { id: "b", label: "B", content: "exit" },
-      { id: "c", label: "C", content: "break" },
-      { id: "d", label: "D", content: "return" },
-    ],
-    correctOptionId: "c",
-  },
-  {
-    id: "q4",
-    question: "Từ khóa nào bỏ qua phần còn lại của lần lặp hiện tại và chuyển sang lần tiếp theo?",
-    questionNumber: 4,
-    options: [
-      { id: "a", label: "A", content: "continue" },
-      { id: "b", label: "B", content: "skip" },
-      { id: "c", label: "C", content: "pass" },
-      { id: "d", label: "D", content: "next" },
-    ],
-    correctOptionId: "a",
-  },
-  {
-    id: "q5",
-    questionNumber: 5,
-    question: "Vòng lặp while tiếp tục thực thi trong trường hợp nào?",
-    options: [
-      { id: "a", label: "A", content: "Khi điều kiện là True" },
-      { id: "b", label: "B", content: "Khi điều kiện là False" },
-      { id: "c", label: "C", content: "Luôn đúng 10 lần" },
-      { id: "d", label: "D", content: "Chỉ khi có danh sách" },
-    ],
-    correctOptionId: "a",
-  },
-];
+import { questions, quizInfo } from "../../services/practiceQuiz";
+import { useAuth } from "../../context/AuthContext";
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -105,6 +13,7 @@ const formatTime = (seconds: number) => {
 
 function QuizPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { lessonId = "lesson-4" } = useParams();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
@@ -114,8 +23,12 @@ function QuizPage() {
   const selectedOptionId = selectedAnswers[currentQuestion.id];
   const progress = ((currentQuestionIndex + 1) / quizInfo.totalQuestions) * 100;
 
+  const finishQuiz = () => {
+    navigate(`/quiz/${lessonId}/result`, { replace: true, state: { lessonId, answers: selectedAnswers, userId: user?.id } });
+  };
+
   useEffect(() => {
-    if (remainingSeconds === 0) return;
+    if (remainingSeconds === 0) { finishQuiz(); return; }
 
     const intervalId = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
@@ -125,6 +38,7 @@ function QuizPage() {
   }, [remainingSeconds]);
 
   const selectAnswer = (optionId: string) => {
+    if (remainingSeconds === 0) return;
     setSelectedAnswers((current) => ({
       ...current,
       [currentQuestion.id]: optionId,
@@ -137,17 +51,18 @@ function QuizPage() {
       `Bạn đã trả lời ${answeredCount}/${quizInfo.totalQuestions} câu. Bạn có muốn nộp bài?`,
     );
 
-    if (shouldSubmit) navigate(`/quiz/${lessonId}/result`);
+    if (shouldSubmit) finishQuiz();
   };
 
   return (
     <div className="bg-[#f8f9ff] text-[#0b1c30]">
+      <p role="status" className="page-container pt-6 text-sm text-amber-800">Bài luyện tập mẫu về vòng lặp Python. Kết quả không được ghi vào tiến độ khóa học.</p>
       <div className="page-container py-10 sm:py-14 lg:py-16">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <section className="space-y-8 lg:col-span-8" aria-labelledby="quiz-title">
             <div className="space-y-3">
               <h1 id="quiz-title" className="text-3xl font-bold tracking-tight sm:text-[32px]">
-                Kiểm tra kiến thức
+                Luyện tập kiến thức
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-[#464555]">
                 <span className="flex items-center gap-1.5 rounded-full bg-[#e5eeff] px-3 py-1.5">

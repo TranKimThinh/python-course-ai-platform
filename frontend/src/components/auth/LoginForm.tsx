@@ -47,7 +47,7 @@ function LoginForm() {
     setErrors({});
 
     try {
-      const authenticatedUser = await login(identifier.trim(), password);
+      const authenticatedUser = await login(identifier.trim(), password, rememberMe);
 
       if (authenticatedUser.role === "admin") {
         navigate("/admin", { replace: true });

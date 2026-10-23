@@ -91,7 +91,7 @@ export default function QuizManagementPage() {
   };
 
   const handleGenerateAI = () => {
-    alert(`Đang xử lý: Tạo ${aiCount} câu hỏi (${aiLevel}) cho bài học "${aiLesson}"...`);
+    alert("Tạo quiz bằng AI chưa khả dụng. Chưa có câu hỏi nào được tạo.");
   };
 
   const handleDummyAction = (actionName: string) => {
@@ -116,6 +116,7 @@ export default function QuizManagementPage() {
 
   return (
     <AdminLayout>
+      <p role="status" className="m-6 rounded-xl bg-amber-50 p-4 text-amber-900">Đây là dữ liệu minh họa. Quản lý và tạo quiz chưa được kết nối với hệ thống.</p>
       <div
         className="p-6 space-y-6 w-full min-h-screen overflow-x-hidden"
         style={{ zoom: "0.8" }}

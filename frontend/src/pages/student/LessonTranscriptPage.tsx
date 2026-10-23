@@ -28,6 +28,7 @@ const emptySummary: SummaryData = {
 
 function LessonTranscriptPage() {
   const { courseId, lessonId } = useParams();
+  const [actionMessage, setActionMessage] = useState("");
   const [activeTab, setActiveTab] = useState<TranscriptTab>("transcript");
   const [searchTerm, setSearchTerm] = useState("");
   const [lessonInfo, setLessonInfo] = useState<LessonInfo>({
@@ -124,7 +125,8 @@ function LessonTranscriptPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => console.log("Download PDF transcript")}
+                disabled={isLoading || !transcriptSegments.length}
+                onClick={() => window.print()}
                 className="focus-ring inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-700"
               >
                 <Download size={17} />
@@ -132,7 +134,14 @@ function LessonTranscriptPage() {
               </button>
               <button
                 type="button"
-                onClick={() => console.log("Share transcript")}
+                onClick={async () => {
+                  try {
+                    if (navigator.share) await navigator.share({ title: lessonInfo.lessonName, url: window.location.href });
+                    else { await navigator.clipboard.writeText(window.location.href); setActionMessage("Đã sao chép liên kết."); }
+                  } catch (error) {
+                    if (!(error instanceof DOMException && error.name === "AbortError")) setActionMessage("Không thể chia sẻ. Bạn có thể sao chép địa chỉ trang trên trình duyệt.");
+                  }
+                }}
                 className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700"
               >
                 <Share2 size={17} />
@@ -142,6 +151,7 @@ function LessonTranscriptPage() {
           </div>
         </section>
 
+        {actionMessage && <p role="status" className="page-container pt-4">{actionMessage}</p>}
         <section className="page-container grid gap-7 py-10 lg:grid-cols-[300px_minmax(0,1fr)]">
           <LessonInfoSidebar lessonInfo={lessonInfo} courseId={courseId ?? ""} lessonId={lessonId ?? ""} />
 
@@ -220,6 +230,7 @@ function mapSummaryData(payload: unknown): SummaryData {
   const summary = asRecord(data.summary);
 
   return {
+    summaryText: getStringOrNull(data.summaryText, data.summary_text, summary.summaryText, summary.summary_text) ?? "",
     keyPoints: extractStringArray(
       data.keyPoints,
       data.key_points,

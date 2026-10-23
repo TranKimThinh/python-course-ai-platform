@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { getStoredToken } from "../config/api";
 import { authService } from "../services/authService";
 import { mapApiUserToAuthUser, type AuthUser, type RegisterPayload } from "../services/auth.types";
 import { flushAllProgress } from "../stores/progressSyncStore";
@@ -11,7 +12,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   token: string | null;
   isLoading: boolean;
-  login: (identifier: string, password: string) => Promise<AuthUser>;
+  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<AuthUser>;
   loginWithGoogle: (idToken: string) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const apiUser = await authService.getMe(token);
         if (isMounted) setUser(mapApiUserToAuthUser(apiUser));
       } catch {
+        if (!isMounted) return;
         // Token hết hạn hoặc không hợp lệ -> đăng xuất
         removeStoredTokens();
         if (isMounted) {
@@ -57,13 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = async (identifier: string, password: string): Promise<AuthUser> => {
+  const login = async (identifier: string, password: string, rememberMe = false): Promise<AuthUser> => {
     const newToken = await authService.login({ username: identifier, password });
-    removeStoredTokens();
-    localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
-    setToken(newToken);
-
     const apiUser = await authService.getMe(newToken);
+    removeStoredTokens();
+    (rememberMe ? localStorage : sessionStorage).setItem(TOKEN_STORAGE_KEY, newToken);
+    setToken(newToken);
     const authUser = mapApiUserToAuthUser(apiUser);
     setUser(authUser);
     localStorage.setItem("user", JSON.stringify(authUser));
@@ -72,11 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async (idToken: string): Promise<AuthUser> => {
     const newToken = await authService.loginWithGoogle(idToken);
-    removeStoredTokens();
-    localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
-    setToken(newToken);
-
     const apiUser = await authService.getMe(newToken);
+    removeStoredTokens();
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    setToken(newToken);
     const authUser = mapApiUserToAuthUser(apiUser);
     setUser(authUser);
     localStorage.setItem("user", JSON.stringify(authUser));
@@ -121,10 +121,6 @@ export function useAuth() {
 }
 
 function removeStoredTokens() {
-  TOKEN_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  TOKEN_STORAGE_KEYS.forEach((key) => { localStorage.removeItem(key); sessionStorage.removeItem(key); });
   localStorage.removeItem("user");
-}
-
-function getStoredToken() {
-  return TOKEN_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find((value): value is string => Boolean(value)) ?? null;
 }

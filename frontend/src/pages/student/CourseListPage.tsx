@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Braces, Facebook, Github, Linkedin, Mail, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import CourseCard, { type Course, type CourseLevel } from "../../components/course/CourseCard";
@@ -22,6 +22,8 @@ const navigation = [
 
 function CourseListPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [page, setPage] = useState(1);
+  const loadRequestId = useRef(0);
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -31,20 +33,28 @@ function CourseListPage() {
   const [selectedDuration, setSelectedDuration] = useState<DurationFilter | "">("");
 
   const loadCourses = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
     try {
       setIsLoading(true);
       setErrorMessage("");
 
       const response = await getCourses({ page: 1, pageSize: 20 });
-      const items = extractCourseItems(response);
+      const firstData = response.data;
+      const pages = firstData && !Array.isArray(firstData) ? firstData.pagination?.totalPages ?? 1 : 1;
+      const remaining = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, index) =>
+        getCourses({ page: index + 2, pageSize: 20 }),
+      ));
+      const items = [response, ...remaining].flatMap(extractCourseItems);
       const mappedCourses = items.map((item, index) => mapCourseListItem(item, index));
       const coursesWithProgress =
         isAuthenticated && !isAuthLoading
           ? await loadCourseCardsProgress(mappedCourses)
           : mappedCourses;
 
+      if (requestId !== loadRequestId.current) return;
       setCourses(coursesWithProgress);
     } catch (error) {
+      if (requestId !== loadRequestId.current) return;
       console.error("Load courses failed:", error);
 
       setErrorMessage(
@@ -52,7 +62,7 @@ function CourseListPage() {
       );
       setCourses([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === loadRequestId.current) setIsLoading(false);
     }
   }, [isAuthenticated, isAuthLoading]);
 
@@ -87,13 +97,19 @@ function CourseListPage() {
     });
   }, [activeChip, courses, searchTerm, selectedDuration, selectedLevels]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / 9));
+  const visiblePage = Math.min(page, totalPages);
+  const visibleCourses = filteredCourses.slice((visiblePage - 1) * 9, visiblePage * 9);
+
   const handleToggleLevel = (level: CourseLevel) => {
+    setPage(1);
     setSelectedLevels((current) =>
       current.includes(level) ? current.filter((item) => item !== level) : [...current, level],
     );
   };
 
   const handleResetFilters = () => {
+    setPage(1);
     setSearchTerm("");
     setActiveChip("Tất cả");
     setSelectedLevels([]);
@@ -124,8 +140,8 @@ function CourseListPage() {
 
         <section className="page-container py-10 lg:py-12">
           <div className="mb-8 space-y-4">
-            <CourseSearchBar value={searchTerm} onChange={setSearchTerm} />
-            <CourseFilterChips chips={chips} activeChip={activeChip} onChange={setActiveChip} />
+            <CourseSearchBar value={searchTerm} onChange={(value) => { setPage(1); setSearchTerm(value); }} />
+            <CourseFilterChips chips={chips} activeChip={activeChip} onChange={(value) => { setPage(1); setActiveChip(value); }} />
           </div>
 
           <div className="grid gap-7 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr]">
@@ -133,7 +149,7 @@ function CourseListPage() {
               selectedLevels={selectedLevels}
               selectedDuration={selectedDuration}
               onToggleLevel={handleToggleLevel}
-              onSelectDuration={setSelectedDuration}
+              onSelectDuration={(value) => { setPage(1); setSelectedDuration(value); }}
               onReset={handleResetFilters}
             />
 
@@ -171,7 +187,7 @@ function CourseListPage() {
                 </div>
               ) : filteredCourses.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2">
-                  {filteredCourses.map((course) => (
+                  {visibleCourses.map((course) => (
                     <CourseCard key={course.id} course={course} />
                   ))}
                 </div>
@@ -189,7 +205,7 @@ function CourseListPage() {
                 </div>
               )}
 
-              {!isLoading && !errorMessage && courses.length > 0 && <CoursePagination />}
+              {!isLoading && !errorMessage && courses.length > 0 && <CoursePagination page={visiblePage} totalPages={totalPages} onChange={setPage} />}
             </div>
           </div>
         </section>

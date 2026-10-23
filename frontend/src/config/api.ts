@@ -1,13 +1,13 @@
 export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://127.0.0.1:3000/api/v1"
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:3000/api/v1"
 ).replace(/\/+$/, "");
 
 const TOKEN_STORAGE_KEY = "accessToken";
 const LEGACY_TOKEN_STORAGE_KEY = "python_ai_learning_token";
 
-function getStoredToken() {
+export function getStoredToken() {
   return (
+    sessionStorage.getItem(TOKEN_STORAGE_KEY) ||
     localStorage.getItem(TOKEN_STORAGE_KEY) ||
     localStorage.getItem("pyai_token") ||
     localStorage.getItem("token") ||
@@ -32,7 +32,7 @@ export async function apiFetch<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  if (token) {
+  if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -75,6 +75,8 @@ export async function apiFetch<T>(
 
     throw new Error(normalizeApiErrorMessage(message));
   }
+
+  if (response.status === 204 || response.status === 205) return undefined as T;
 
   if (!contentType.includes("application/json")) {
     throw new Error("API không trả về JSON.");

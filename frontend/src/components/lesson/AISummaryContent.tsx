@@ -12,6 +12,7 @@ interface AISummaryContentProps {
 function AISummaryContent({ summary, courseId, lessonId }: AISummaryContentProps) {
   return (
     <div className="space-y-7">
+      {summary.summaryText && <section className="rounded-2xl bg-indigo-50 p-5"><h2 className="mb-3 text-xl font-extrabold text-slate-950">Tóm tắt bài học</h2><p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{summary.summaryText}</p></section>}
       <section>
         <div className="mb-4 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">

@@ -21,7 +21,7 @@ function ChatHeader() {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => console.log("Open AI chat history")}
+          onClick={() => navigate("/ai-assistant")}
           className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-600"
           aria-label="Lịch sử chat"
         >

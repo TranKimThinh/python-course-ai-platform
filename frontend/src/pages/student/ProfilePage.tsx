@@ -1,44 +1,18 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import AccountActions from "../../components/profile/AccountActions";
-import PremiumStatusCard from "../../components/profile/PremiumStatusCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileInfoForm from "../../components/profile/ProfileInfoForm";
-import RecentActivitiesCard from "../../components/profile/RecentActivitiesCard";
 import SecurityForm from "../../components/profile/SecurityForm";
 import {
   type PasswordFormData,
   type PasswordFormErrors,
   type ProfileFormData,
-  type RecentActivity,
 } from "../../components/profile/profileTypes";
 import { useAuth } from "../../context/AuthContext";
 import { profileService } from "../../services/profileService";
+import { Link } from "react-router-dom";
 import { parseApiError } from "../../services/authService";
-
-const activities: RecentActivity[] = [
-  {
-    id: "activity-1",
-    title: "Đã xem: Bài 2 - Biến và Kiểu dữ liệu",
-    time: "2 giờ trước • 15 phút",
-    icon: "play_circle",
-    type: "video",
-  },
-  {
-    id: "activity-2",
-    title: "Hoàn thành Quiz: Vòng lặp for - 8/10",
-    time: "Hôm qua • Khóa học Python cơ bản",
-    icon: "task_alt",
-    type: "quiz",
-  },
-  {
-    id: "activity-3",
-    title: "Hỏi AI: Cách dùng list comprehension",
-    time: "2 ngày trước • AI Assistant",
-    icon: "smart_toy",
-    type: "ai",
-  },
-];
 
 function ProfilePage() {
   const { user, token, refreshUser } = useAuth();
@@ -189,9 +163,9 @@ function ProfilePage() {
           </div>
 
           <aside className="space-y-7">
-            <RecentActivitiesCard activities={activities} />
+            <Link to="/profile/activities" className="block rounded-2xl border bg-white p-5 font-bold text-indigo-700">Xem hoạt động học tập của bạn</Link>
             <AccountActions />
-            <PremiumStatusCard />
+
           </aside>
         </section>
       </main>

@@ -73,6 +73,7 @@ function VideoPlayerSection({
   const progressTimerRef = useRef<number | null>(null);
   const lessonProgressRef = useRef<LessonProgressData | null>(lessonProgress);
   const onEndedRef = useRef(onEnded);
+  const onProgressChangeRef = useRef(onProgressChange);
   const hasRestoredRef = useRef(false);
   const lastSavedAtRef = useRef(0);
   const saveInFlightRef = useRef(false);
@@ -104,6 +105,10 @@ function VideoPlayerSection({
   }, [onEnded]);
 
   useEffect(() => {
+    onProgressChangeRef.current = onProgressChange;
+  }, [onProgressChange]);
+
+  useEffect(() => {
     if (videoRef.current && videoUrl) {
       videoRef.current.load();
     }
@@ -130,12 +135,12 @@ function VideoPlayerSection({
           options,
         );
         const data = "data" in response && response.data ? response.data : response;
-        onProgressChange(data as LessonProgressData);
+        onProgressChangeRef.current(data as LessonProgressData);
       } finally {
         saveInFlightRef.current = false;
       }
     },
-    [courseId, lessonId, onProgressChange],
+    [courseId, lessonId],
   );
 
   const saveProgress = useCallback(async (options: { keepalive?: boolean } = {}) => {
@@ -143,9 +148,9 @@ function VideoPlayerSection({
     if (!video) return;
 
     const currentTime = Math.floor(video.currentTime || 0);
-    const duration = Math.floor(video.duration || durationSeconds || lessonProgress?.durationSeconds || 0);
+    const duration = Math.floor(video.duration || durationSeconds || lessonProgressRef.current?.durationSeconds || 0);
     await persistProgress(currentTime, duration, options);
-  }, [durationSeconds, lessonProgress?.durationSeconds, persistProgress]);
+  }, [durationSeconds, persistProgress]);
 
   const stopYoutubeProgressTimer = useCallback(() => {
     if (progressTimerRef.current) {

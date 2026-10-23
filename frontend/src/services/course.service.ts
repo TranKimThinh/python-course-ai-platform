@@ -231,6 +231,8 @@ export function mapAdminCourseListItem(course: BackendCourse) {
   return {
     id: String(course.slug || course.id),
     title: course.title || "Chưa có tiêu đề",
+    description: course.description ?? undefined,
+    price: course.price == null ? undefined : String(course.price),
     level: mapLevel(course.level),
     lessons: Number(getValue(course.lessonsCount, course.lessons_count, 0)),
     students: course.studentsCount ?? 0,

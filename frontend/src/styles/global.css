@@ -247,3 +247,9 @@
     transform: translateY(0);
   }
 }
+@media print {
+  header, footer, nav, button, input, aside { display: none !important; }
+  body, main, section, article { background: white !important; box-shadow: none !important; }
+  .page-container { max-width: none !important; padding: 0 !important; }
+  article { break-inside: avoid; }
+}
